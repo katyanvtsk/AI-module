@@ -1,6 +1,6 @@
 import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { Task } from '../features/tasks/model/task'
 import { createLocalStorageTaskRepository, TASK_STORAGE_KEY } from '../services/localStorageTaskRepository'
 import type { TaskRepository } from '../services/taskRepository'
@@ -38,6 +38,15 @@ function createRepositoryDouble(overrides: Partial<TaskRepository> = {}): TaskRe
 }
 
 describe('App', () => {
+  beforeEach(() => {
+    vi.useFakeTimers({ toFake: ['Date'] })
+    vi.setSystemTime(new Date(2026, 9, 2, 12))
+  })
+
+  afterEach(() => {
+    vi.useRealTimers()
+  })
+
   it('reports board totals from persisted data', async () => {
     const user = userEvent.setup()
     const repository = createLocalStorageTaskRepository(localStorage, {
@@ -57,13 +66,14 @@ describe('App', () => {
     expect(screen.getByText('Готово: 3')).toBeInTheDocument()
   })
 
-  it('shows zero stats for an invalid persisted envelope', async () => {
+  it('uses loaded tasks for stats regardless of localStorage contents', async () => {
     localStorage.setItem(TASK_STORAGE_KEY, JSON.stringify({ version: 1, tasks: [{ status: 'todo' }] }))
     render(<App repository={createRepositoryDouble()} />)
 
-    expect(screen.getByText('Всего задач: 0')).toBeInTheDocument()
-    expect(screen.getByText('В работе: 0')).toBeInTheDocument()
+    expect(await screen.findByText('Всего задач: 1')).toBeInTheDocument()
+    expect(screen.getByText('В работе: 1')).toBeInTheDocument()
     expect(screen.getByText('Готово: 0')).toBeInTheDocument()
+    expect(screen.getByText('Просрочено: 1')).toBeInTheDocument()
   })
 
   it('renders tasks in their status columns after loading', async () => {
@@ -89,6 +99,7 @@ describe('App', () => {
       priority: 'medium',
     }))
     expect(await screen.findByText('Новая задача')).toBeInTheDocument()
+    expect(screen.getByText('Просрочено: 2')).toBeInTheDocument()
   })
 
   it('edits the title and priority of an existing task', async () => {
@@ -125,6 +136,7 @@ describe('App', () => {
     }))
     expect(await screen.findByText('Подготовить релиз')).toBeInTheDocument()
     expect(screen.queryByText('Срок: 2026-09-12')).not.toBeInTheDocument()
+    expect(screen.getByText('Просрочено: 0')).toBeInTheDocument()
   })
 
   it('moves a task to the next status with an accessible button', async () => {
@@ -136,6 +148,7 @@ describe('App', () => {
     await user.click(screen.getByRole('button', { name: 'Переместить: Подготовить релиз' }))
 
     expect(repository.update).toHaveBeenCalledWith('task-release', { status: 'done' })
+    expect(await screen.findByText('Просрочено: 0')).toBeInTheDocument()
   })
 
   it('deletes a task only after confirmation', async () => {
@@ -153,15 +166,19 @@ describe('App', () => {
 
   it('resets the board only after confirmation', async () => {
     const user = userEvent.setup()
-    const repository = createRepositoryDouble()
+    const repository = createRepositoryDouble({
+      reset: vi.fn().mockResolvedValue({ tasks: [], recovered: false }),
+    })
     render(<App repository={repository} />)
     await screen.findByText('Подготовить релиз')
+    expect(screen.getByText('Просрочено: 1')).toBeInTheDocument()
 
     await user.click(screen.getByRole('button', { name: 'Восстановить пример' }))
     expect(repository.reset).not.toHaveBeenCalled()
     await user.click(screen.getByRole('button', { name: 'Восстановить задачи' }))
 
     expect(repository.reset).toHaveBeenCalledOnce()
+    expect(await screen.findByText('Просрочено: 0')).toBeInTheDocument()
   })
 
   it('shows a recovery notice returned by the repository', async () => {
@@ -187,5 +204,6 @@ describe('App', () => {
 
     expect(await screen.findByRole('alert')).toHaveTextContent('Не удалось сохранить задачу')
     expect(screen.getByRole('dialog', { name: 'Новая задача' })).toBeInTheDocument()
+    expect(screen.getByText('Просрочено: 1')).toBeInTheDocument()
   })
 })
