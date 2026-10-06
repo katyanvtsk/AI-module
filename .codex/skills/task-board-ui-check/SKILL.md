@@ -1,6 +1,5 @@
 ---
-name: task-board-ui-check
-disable-model-invocation: true
+name: task-board-ui-checkЫ
 description: Проверка интерфейса доски задач в браузере по указанному сценарию и размеру экрана.
 ---
 
