@@ -1,4 +1,5 @@
 ﻿import type { Task } from '../features/tasks/model/task'
+import { TaskCounter } from '../features/tasks/components/TaskCounter'
 import styles from './LegacyBoardStats.module.css'
 
 interface LegacyBoardStatsProps {
@@ -14,7 +15,7 @@ export function LegacyBoardStats({ tasks }: LegacyBoardStatsProps) {
 
   return (
     <section className={styles.stats} aria-label="Статистика доски">
-      <div className={styles.stat}>Всего задач: {tasks.length}</div>
+      <TaskCounter tasks={tasks} />
       <div className={styles.stat}>В работе: {inProgress}</div>
       <div className={styles.stat}>Готово: {done}</div>
       <div className={styles.stat}>Просрочено: {overdue}</div>
