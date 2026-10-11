@@ -1,0 +1,47 @@
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node D:/react/task-board-starter/.codex/hooks/protect-file.cjs"
+          }
+        ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node D:/react/task-board-starter/.codex/hooks/protect-main.cjs"
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "command": "powershell.exe -NoProfile -NonInteractive -ExecutionPolicy Bypass -WindowStyle Hidden -File D:/react/task-board-starter/.codex/hooks/notify.ps1",
+            "timeout": 10,
+            "type": "command"
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "command": "node D:/react/task-board-starter/.codex/hooks/check-edited-file.cjs",
+            "timeout": 40,
+            "type": "command"
+          }
+        ]
+      }
+    ]
+  }
+}
