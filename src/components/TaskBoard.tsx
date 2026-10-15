@@ -32,9 +32,11 @@ export function TaskBoard({ repository }: TaskBoardProps) {
     let active = true
     repository.load()
       .then((result) => {
+        // Recovery rewrites storage, so a repeated load (e.g. StrictMode) reports recovered: false.
+        // Keep the notice even if this run was superseded.
+        if (result.recovered) setRecovered(true)
         if (!active) return
         setTasks(result.tasks)
-        setRecovered(result.recovered)
       })
       .catch(() => {
         if (active) setOperationError('Не удалось загрузить задачи')

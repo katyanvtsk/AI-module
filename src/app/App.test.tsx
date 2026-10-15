@@ -1,5 +1,6 @@
 import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
+import { StrictMode } from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { Task } from '../features/tasks/model/task'
 import { createLocalStorageTaskRepository, TASK_STORAGE_KEY } from '../services/localStorageTaskRepository'
@@ -188,6 +189,22 @@ describe('App', () => {
     render(<App repository={repository} />)
 
     expect(await screen.findByText('Сохранённые данные были повреждены. Мы восстановили пример.')).toBeInTheDocument()
+  })
+
+  it('keeps the recovery notice when StrictMode loads tasks twice', async () => {
+    const repository = createRepositoryDouble({
+      load: vi.fn()
+        .mockResolvedValueOnce({ tasks: [activeTask], recovered: true })
+        .mockResolvedValue({ tasks: [activeTask], recovered: false }),
+    })
+    render(
+      <StrictMode>
+        <App repository={repository} />
+      </StrictMode>,
+    )
+
+    expect(await screen.findByRole('status')).toHaveTextContent('Сохранённые данные были повреждены. Мы восстановили пример.')
+    expect(repository.load).toHaveBeenCalledTimes(2)
   })
 
   it('shows an error and keeps the dialog open when saving fails', async () => {
